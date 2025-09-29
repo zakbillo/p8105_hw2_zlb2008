@@ -5,15 +5,14 @@ date: "2025-09-29"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, echo=FALSE}
+library(tidyverse)
+library(readxl)
 ```
 
-## R Markdown
+## Problem 1
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+First, clean the data in pols-month.csv. Use separate() to break up the variable `mon` into integer variables `year`, `month`, and `day`; replace month number with month name; create a `president` variable taking values `gop` and `dem`, and remove `prez_dem` and `prez_gop`; and remove the day variable.
 
 ```{r cars}
 summary(cars)
