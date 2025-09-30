@@ -14,16 +14,88 @@ library(readxl)
 
 First, clean the data in pols-month.csv. Use separate() to break up the variable `mon` into integer variables `year`, `month`, and `day`; replace month number with month name; create a `president` variable taking values `gop` and `dem`, and remove `prez_dem` and `prez_gop`; and remove the day variable.
 
-```{r cars}
-summary(cars)
+```{r}
+pols_month_df <-
+  read_csv('data/pols-month.csv', na = c("NA", ".", "")) |>
+  janitor::clean_names() |>
+  separate(mon, 
+    into = c("year", "month", "day"),
+    sep = "-"
+  ) |>
+  mutate(month = case_match(
+    month, 
+    "01" ~ "January",
+    "02" ~ "February",
+    "03" ~ "March",
+    "04" ~ "April",
+    "05" ~ "May",
+    "06" ~ "June",
+    "07" ~ "July",
+    "08" ~ "August",
+    "09" ~ "September",
+    "10" ~ "October",
+    "11" ~ "November",
+    "12" ~ "December"
+    ),
+    president = case_match(
+    prez_gop, 
+    1 ~ "gop",
+    .default = case_match(prez_dem, 1 ~ "dem")
+    )) |>
+  select(-prez_dem, -prez_gop, -day)
 ```
+
+Second, clean the data in snp.csv using a similar process to the above. For consistency across datasets, arrange according to year and month, and organize so that year and month are the leading columns.
+
+```{r}
+snp_df <-
+  read_csv('data/snp.csv', na = c("NA", ".", "")) |>
+  janitor::clean_names() |>
+  separate(date, 
+    into = c("month", "day", "year"),
+    sep = "/"
+  ) |>
+  mutate(month = case_match(
+    month, 
+    "1" ~ "January",
+    "2" ~ "February",
+    "3" ~ "March",
+    "4" ~ "April",
+    "5" ~ "May",
+    "6" ~ "June",
+    "7" ~ "July",
+    "8" ~ "August",
+    "9" ~ "September",
+    "10" ~ "October",
+    "11" ~ "November",
+    "12" ~ "December"
+    )) |>
+  select(year, month, everything(), -day)
+```
+
+Third, tidy the unemployment data so that it can be merged with the previous datasets. This process will involve switching from “wide” to “long” format; ensuring that key variables have the same name; and ensuring that key variables take the same values.
+
+```{r}
+unemployment_df <-
+  read_csv('data/unemployment.csv', na = c("NA", ".", "")) |>
+  janitor::clean_names() |>
+  pivot_longer(
+    jan:dec,
+    names_to = "month", 
+    values_to = "perc_unemployment"
+  ) |>
+  select(year, month, perc_unemployment)
+```
+
+Join the datasets by merging snp into pols, and merging unemployment into the result.
+
+```{r}
+snp_pols_df = 
+  left_join(pols_month_df, snp_df, by = c("year", "month"))
+
+```
+
 
 ## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
