@@ -15,7 +15,7 @@ library(readxl)
 First, clean the data in pols-month.csv. Use separate() to break up the variable `mon` into integer variables `year`, `month`, and `day`; replace month number with month name; create a `president` variable taking values `gop` and `dem`, and remove `prez_dem` and `prez_gop`; and remove the day variable.
 
 ```{r}
-pols_month_df <-
+pols_df <-
   read_csv('data/pols-month.csv', na = c("NA", ".", "")) |>
   janitor::clean_names() |>
   separate(mon, 
@@ -24,25 +24,26 @@ pols_month_df <-
   ) |>
   mutate(month = case_match(
     month, 
-    "01" ~ "January",
-    "02" ~ "February",
-    "03" ~ "March",
-    "04" ~ "April",
-    "05" ~ "May",
-    "06" ~ "June",
-    "07" ~ "July",
-    "08" ~ "August",
-    "09" ~ "September",
-    "10" ~ "October",
-    "11" ~ "November",
-    "12" ~ "December"
+    "01" ~ "jan",
+    "02" ~ "feb",
+    "03" ~ "mar",
+    "04" ~ "apr",
+    "05" ~ "may",
+    "06" ~ "jun",
+    "07" ~ "jul",
+    "08" ~ "aug",
+    "09" ~ "sep",
+    "10" ~ "oct",
+    "11" ~ "nov",
+    "12" ~ "dec"
     ),
     president = case_match(
     prez_gop, 
     1 ~ "gop",
     .default = case_match(prez_dem, 1 ~ "dem")
     )) |>
-  select(-prez_dem, -prez_gop, -day)
+  arrange(desc(year)) |>
+  select(-prez_dem, -prez_gop, -day) 
 ```
 
 Second, clean the data in snp.csv using a similar process to the above. For consistency across datasets, arrange according to year and month, and organize so that year and month are the leading columns.
@@ -57,19 +58,22 @@ snp_df <-
   ) |>
   mutate(month = case_match(
     month, 
-    "1" ~ "January",
-    "2" ~ "February",
-    "3" ~ "March",
-    "4" ~ "April",
-    "5" ~ "May",
-    "6" ~ "June",
-    "7" ~ "July",
-    "8" ~ "August",
-    "9" ~ "September",
-    "10" ~ "October",
-    "11" ~ "November",
-    "12" ~ "December"
+    "1" ~ "jan",
+    "2" ~ "feb",
+    "3" ~ "mar",
+    "4" ~ "apr",
+    "5" ~ "may",
+    "6" ~ "jun",
+    "7" ~ "jul",
+    "8" ~ "aug",
+    "9" ~ "sep",
+    "10" ~ "oct",
+    "11" ~ "nov",
+    "12" ~ "dec"
     )) |>
+  mutate(year=as.numeric(year),
+        year=ifelse(year<=15, year+2000, year+1900),
+        year=as.character(year))|>
   select(year, month, everything(), -day)
 ```
 
@@ -84,16 +88,32 @@ unemployment_df <-
     names_to = "month", 
     values_to = "perc_unemployment"
   ) |>
-  select(year, month, perc_unemployment)
+  select(year, month, perc_unemployment) |>
+  arrange(desc(year)) |>
+  mutate(year = as.character(year))
 ```
 
 Join the datasets by merging snp into pols, and merging unemployment into the result.
 
 ```{r}
-snp_pols_df = 
-  left_join(pols_month_df, snp_df, by = c("year", "month"))
-
+pols_snp_unemp_df = 
+  left_join(pols_df, snp_df, by = c("year", "month")) |>
+  left_join(unemployment_df, by = c("year", "month"))
 ```
+
+The tidy dataset pols_month_df contains 822 observations from 1947-2015, spanning 9 variables:
+`year`, `month`, `gov_gop`, `sen_dem`, `rep_gop`, `gov_dem`, `sen_dem`, `rep_dem`, and `president` 
+
+The tidy dataset snp_df contains 787 observations from 1950-2015, spanning 3 variables:
+`year`, `month`, and `close` 
+
+The tidy dataset unemployment_df contains 816 observations from 1948-2015, spanning 3 variables:
+`year`, `month`, and `perc_unemployment` 
+
+The tidy, merged dataset pols_snp_unemp_df contains 822 observations and 11 variables: 
+`year`, `month`, `gov_gop`, `sen_dem`, `rep_gop`, `gov_dem`, `sen_dem`, `rep_dem`, `president`, `close`, and `perc_unemployment`.
+
+
 
 
 ## Including Plots
