@@ -12,8 +12,6 @@ library(readxl)
 
 ## Problem 1
 
-First, clean the data in pols-month.csv. Use separate() to break up the variable `mon` into integer variables `year`, `month`, and `day`; replace month number with month name; create a `president` variable taking values `gop` and `dem`, and remove `prez_dem` and `prez_gop`; and remove the day variable.
-
 ```{r}
 pols_df <-
   read_csv('data/pols-month.csv', na = c("NA", ".", "")) |>
@@ -46,8 +44,6 @@ pols_df <-
   select(-prez_dem, -prez_gop, -day) 
 ```
 
-Second, clean the data in snp.csv using a similar process to the above. For consistency across datasets, arrange according to year and month, and organize so that year and month are the leading columns.
-
 ```{r}
 snp_df <-
   read_csv('data/snp.csv', na = c("NA", ".", "")) |>
@@ -77,8 +73,6 @@ snp_df <-
   select(year, month, everything(), -day)
 ```
 
-Third, tidy the unemployment data so that it can be merged with the previous datasets. This process will involve switching from “wide” to “long” format; ensuring that key variables have the same name; and ensuring that key variables take the same values.
-
 ```{r}
 unemployment_df <-
   read_csv('data/unemployment.csv', na = c("NA", ".", "")) |>
@@ -93,35 +87,25 @@ unemployment_df <-
   mutate(year = as.character(year))
 ```
 
-Join the datasets by merging snp into pols, and merging unemployment into the result.
-
 ```{r}
 pols_snp_unemp_df = 
   left_join(pols_df, snp_df, by = c("year", "month")) |>
   left_join(unemployment_df, by = c("year", "month"))
 ```
 
-The tidy dataset pols_month_df contains 822 observations from 1947-2015, spanning 9 variables:
+The dataset pols_month_df contains 822 observations from 1947-2015, spanning 9 variables:
 `year`, `month`, `gov_gop`, `sen_dem`, `rep_gop`, `gov_dem`, `sen_dem`, `rep_dem`, and `president` 
 
-The tidy dataset snp_df contains 787 observations from 1950-2015, spanning 3 variables:
+The dataset snp_df contains 787 observations from 1950-2015, spanning 3 variables:
 `year`, `month`, and `close` 
 
-The tidy dataset unemployment_df contains 816 observations from 1948-2015, spanning 3 variables:
+The dataset unemployment_df contains 816 observations from 1948-2015, spanning 3 variables:
 `year`, `month`, and `perc_unemployment` 
 
-The tidy, merged dataset pols_snp_unemp_df contains 822 observations from 1947-2015 and 11 variables: 
+The dataset pols_snp_unemp_df contains 822 observations from 1947-2015 and 11 variables: 
 `year`, `month`, `gov_gop`, `sen_dem`, `rep_gop`, `gov_dem`, `sen_dem`, `rep_dem`, `president`, `close`, and `perc_unemployment` 
 
 ## Problem 2
-
-Read and clean the Mr. Trash Wheel sheet:
-- specify the sheet in the Excel file and to omit non-data entries (rows with notes / figures; columns containing notes) using arguments in read_excel
-- use reasonable variable names
-- omit rows that do not include dumpster-specific data
-- round the number of sports balls to the nearest integer and converts the result to an integer variable (using as.integer)
-
-Use a similar process to import, clean, and organize the data for Professor Trash Wheel and Gwynnda, and combine this with the Mr. Trash Wheel dataset to produce a single tidy dataset. To keep track of which Trash Wheel is which, you may need to add an additional variable to both datasets before combining.
 
 ```{r}
 mr_trash_df <- 
@@ -157,8 +141,115 @@ print(
   )
 ```
 
-The resulting dataset has 1188 observations. The variables are `dumpster`, `month`, `year`, `date`, `weight_tons`, `volume_cubic_yards`, `plastic_bottles`, `polystyrene`, `cigarette_butts`, `glass_bottles`, `plastic_bags`, `wrappers`, `sports_balls`, `homes_powered`, and `service`. The total weight of trash collected by Professor Trash Wheel was 282.26 tons. The total number of cigarette butts collected by Gwynnda in June of 2022 was 18,120. 
+The dataset trash_df has 1188 observations. The variables are `dumpster`, `month`, `year`, `date`, `weight_tons`, `volume_cubic_yards`, `plastic_bottles`, `polystyrene`, `cigarette_butts`, `glass_bottles`, `plastic_bags`, `wrappers`, `sports_balls`, `homes_powered`, and `service`. The total weight of trash collected by Professor Trash Wheel was 282.26 tons. The total number of cigarette butts collected by Gwynnda in June of 2022 was 18,120. 
 
 ## Problem 3
 
+```{r}
+zillow_df <-
+  read_csv('data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv', na = c("NA", ".", "")) |>
+  janitor::clean_names() |>
+  pivot_longer(
+    x2015_01_31:x2024_08_31,
+    names_to = "file_date", 
+    values_to = "obs_rent"
+  ) |>
+  separate(file_date, 
+    into = c("year", "month", "day"),
+    sep = "_"
+  ) |>   
+  rename("zip_code" = "region_name") |>
+  rename("county" = "county_name") |>
+  mutate(county = str_replace(county, " County$", "")) |>
+  mutate(year = str_replace(year, "^x", "")) |>
+  mutate(year = as.numeric(year)) |>
+  select(-region_type, -state_name)
+  
+zip_df <-
+  read_csv('data/Zip Codes.csv', na = c("NA", ".", "")) |>
+  janitor::clean_names() |>
+    separate(file_date, 
+    into = c("month", "day", "year"),
+    sep = "/"
+  ) |>
+  mutate(year = as.numeric(year)) |>
+  mutate(year = year + 2000) |>
+  rename("state" = "state_fips") |>
+  mutate(state = "NY") |>
+  select(zip_code, neighborhood)
+```
+
+The resulting dataset has 17,516 observations and 12 variables. 
+
+```{r}
+zillow_zip_df <-
+  left_join(zillow_df, zip_df, by = "zip_code") |>
+  arrange(desc(year)) |>
+  select(year, month, day, obs_rent, neighborhood, county, city, state, zip_code, everything()) 
+
+zillow_zip_df |>
+  pull(zip_code) |>
+  unique() |>
+  length() 
+
+zillow_zip_df |>
+  pull(neighborhood) |>
+  unique() |>
+  length()
+
+missing_zips <- zip_df |> 
+  anti_join(zillow_df, by = "zip_code") |> 
+  pull(zip_code) |>
+  unique()
+
+print(missing_zips)
+```
+
+There are 149 unique zip codes and 43 unique neighborhoods. 
+
+The ZIP codes that appear in the ZIP code dataset but not in the Zillow Rental Price dataset are:
+
+10464 10474 10475 10499 10550 10704 10705 10803 11202 11224 11239 11241 11242 11243 11245 11247 11251 11252 11256 10008
+10020 10041 10043 10045 10047 10048 10055 10072 10080 10081 10082 10087 10101 10102 10103 10104 10105 10106 10107 10108
+10109 10110 10111 10112 10113 10114 10115 10116 10117 10118 10119 10120 10121 10122 10123 10124 10125 10126 10129 10130
+10131 10132 10133 10138 10149 10150 10151 10152 10153 10154 10155 10156 10157 10158 10159 10160 10161 10163 10164 10165
+10166 10167 10168 10169 10170 10171 10172 10173 10174 10175 10176 10177 10178 10179 10185 10197 10199 10213 10242 10249
+10256 10259 10260 10261 10265 10268 10269 10270 10271 10272 10273 10274 10275 10276 10277 10278 10279 10281 10285 10286
+10292 11001 11004 11005 11040 11096 11351 11352 11359 11362 11363 11371 11380 11381 11386 11405 11411 11412 11413 11414
+11416 11417 11419 11420 11421 11422 11423 11424 11425 11427 11428 11429 11430 11431 11433 11436 11439 11451 11499 11559
+11580 11690 11694 11695 11697 10302 10307 10309 10310 10311 10313
+11249 10069 10282 11109 10162. 
+
+These ZIP codes might are excluded from the Zillow dataset because zips in the 100xx and 101xx ranges are often assigned to single buildings, large organizations, or P.O. Box banks (e.g., 10048, 10111, 10271). 
+
+```{r}
+price_data <- zillow_zip_df |>
+  filter(year %in% c(2020, 2021) & month == "01") |>
+  pivot_wider(
+    c("zip_code", "county", "neighborhood"), 
+    names_from = year,                           
+    values_from = obs_rent,                      
+    names_prefix = "price_",
+    values_fn = mean 
+  ) |>
+  mutate(across(starts_with("price_"), as.numeric)) 
+
+top_drop_tab <- price_data |>
+  mutate(price_drop = price_2020 - price_2021) |>
+  filter(!is.na(price_drop)) |>
+  arrange(desc(price_drop)) |>
+  head(10) |>
+  select(
+    zip_code, 
+    county, 
+    neighborhood, 
+    price_Jan_2020 = price_2020, 
+    price_Jan_2021 = price_2021, 
+    price_drop
+  )
+
+print(top_drop_tab)
+```
+
+The most striking observation is the exclusive concentration in Manhattan (New York County). All ten ZIP codes are located in the most expensive and densely populated part of the city, confirming that the pandemic exodus from NYC and shift to remote work had the biggest impact on the rental markets with the highest premiums for urban amenities and proximity to Midtown/FiDi.
 
