@@ -72,8 +72,8 @@ snp_df <-
     "12" ~ "dec"
     )) |>
   mutate(year=as.numeric(year),
-        year=ifelse(year<=15, year+2000, year+1900),
-        year=as.character(year))|>
+    year=ifelse(year<=15, year+2000, year+1900),
+    year=as.character(year)) |>
   select(year, month, everything(), -day)
 ```
 
@@ -110,12 +110,55 @@ The tidy dataset snp_df contains 787 observations from 1950-2015, spanning 3 var
 The tidy dataset unemployment_df contains 816 observations from 1948-2015, spanning 3 variables:
 `year`, `month`, and `perc_unemployment` 
 
-The tidy, merged dataset pols_snp_unemp_df contains 822 observations and 11 variables: 
-`year`, `month`, `gov_gop`, `sen_dem`, `rep_gop`, `gov_dem`, `sen_dem`, `rep_dem`, `president`, `close`, and `perc_unemployment`.
+The tidy, merged dataset pols_snp_unemp_df contains 822 observations from 1947-2015 and 11 variables: 
+`year`, `month`, `gov_gop`, `sen_dem`, `rep_gop`, `gov_dem`, `sen_dem`, `rep_dem`, `president`, `close`, and `perc_unemployment` 
 
+## Problem 2
 
+Read and clean the Mr. Trash Wheel sheet:
+- specify the sheet in the Excel file and to omit non-data entries (rows with notes / figures; columns containing notes) using arguments in read_excel
+- use reasonable variable names
+- omit rows that do not include dumpster-specific data
+- round the number of sports balls to the nearest integer and converts the result to an integer variable (using as.integer)
 
+Use a similar process to import, clean, and organize the data for Professor Trash Wheel and Gwynnda, and combine this with the Mr. Trash Wheel dataset to produce a single tidy dataset. To keep track of which Trash Wheel is which, you may need to add an additional variable to both datasets before combining.
 
-## Including Plots
+```{r}
+mr_trash_df <- 
+  read_excel("data/202509 Trash Wheel Collection Data.xlsx", sheet = 1, range = "A2:N709") |>
+  janitor::clean_names() |>
+  mutate(sports_balls = as.integer(sports_balls)) |>
+  mutate(service = "mr_trash_wheel") |>
+  mutate(year = as.numeric(year))
+
+prof_trash_df <- 
+  read_excel("data/202509 Trash Wheel Collection Data.xlsx", sheet = 2, range = "A2:M134") |>
+  janitor::clean_names() |>
+  mutate(service = "prof_trash_wheel")
+
+gwynss_trash_df <- 
+  read_excel("data/202509 Trash Wheel Collection Data.xlsx", sheet = 4, range = "A2:L351") |>
+  janitor::clean_names() |>
+  mutate(service = "gwynss_trash_wheel")
+
+trash_df <- 
+  full_join(mr_trash_df, prof_trash_df) |>
+  full_join(gwynss_trash_df) |>
+  arrange(desc(year))
+
+print(
+  filter(trash_df, service == "prof_trash_wheel") |>
+  summarize(sum(weight_tons)) 
+  )
+
+print(
+  filter(trash_df, month == "June", year == 2022, service == "gwynss_trash_wheel") |>
+  summarize(sum(cigarette_butts))
+  )
+```
+
+The resulting dataset has 1188 observations. The variables are `dumpster`, `month`, `year`, `date`, `weight_tons`, `volume_cubic_yards`, `plastic_bottles`, `polystyrene`, `cigarette_butts`, `glass_bottles`, `plastic_bags`, `wrappers`, `sports_balls`, `homes_powered`, and `service`. The total weight of trash collected by Professor Trash Wheel was 282.26 tons. The total number of cigarette butts collected by Gwynnda in June of 2022 was 18,120. 
+
+## Problem 3
 
 
